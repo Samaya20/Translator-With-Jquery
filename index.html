@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step Translator</title>
+    <style>
+        #warning {
+            color: #D0393FFF;
+            margin: 10px 0;
+        }
+
+        .container {
+            width: 30%;
+            padding: 40px;
+            margin: auto;
+            background: #3963FFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, Helvetica, sans-serif;
+            font-weight: bolder;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: start;
+        }
+
+        .selection {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .selection select {
+            width: 30%;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+        }
+
+        label {
+            color: white;
+            font-size: 15px;
+        }
+
+        .text-label {
+            margin: 15px 0;
+        }
+
+        #text-input {
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            resize: none;
+            outline: none;
+        }
+
+        button {
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            align-self: center;
+            margin: 5px 0;
+            background: #0A8434FF;
+            color: whitesmoke;
+            font-family: Arial, Helvetica, sans-serif;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: rgb(9, 95, 39);
+        }
+
+        .translated {
+            color: white;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #translated-text {
+            user-select: none;
+            outline: none;
+            resize: none;
+            border: none;
+            border-radius: 5px;
+            cursor: inherit;
+            padding: 10px;
+        }
+
+        .translated label {
+            margin: 15px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="wrapper">
+            <div class="selection">
+                <label for="source-language-select">Yazacağınız textin dilini seçin:</label>
+                <select id="source-language-select" onchange="checkText()">
+                    <option value="en">İngilis</option>
+                    <option value="es">İspan</option>
+                    <option value="fr">Fransız</option>
+                    <option value="de">Alman</option>
+                    <option value="it">İtalyan</option>
+                </select>
+            </div>
+            <div class="selection">
+                <label for="target-language-select">Tərcümə ediləcək dili seçin:</label>
+                <select id="target-language-select">
+                    <option value="zh-CN">Çin (Default)</option>
+                    <option value="es">İspan</option>
+                    <option value="fr">Fransız</option>
+                    <option value="de">Alman</option>
+                    <option value="it">İtalyan</option>
+                </select>
+            </div>
+            <label for="text-input" class="text-label">Text daxil edin:</label>
+            <textarea id="text-input" rows="10" cols="50" oninput="checkText()"></textarea>
+            <div id="warning"></div>
+            <button onclick="translateText()">Tərcümə et</button>
+            <div class="translated">
+                <label>Tərcüməsi:</label>
+                <textarea id="translated-text" rows="10" readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+        const url = 'https://google-translator9.p.rapidapi.com/v2';
+        const headers = {
+            'x-rapidapi-key': 'f48e85d69bmshfd185eb2321523cp1b5545jsne73841b3f894',
+            'x-rapidapi-host': 'google-translator9.p.rapidapi.com',
+            'Content-Type': 'application/json'
+        };
+
+        const languagePatterns = {
+            en: /^[A-Za-z0-9\s.,!?]*$/,
+            es: /^[A-Za-zñÑáéíóúÁÉÍÓÚüÜ\s.,!?]*$/,
+            fr: /^[A-Za-zàâçéèêëîïôûùüÿñæœ\s.,!?]*$/,
+            de: /^[A-Za-zäöüßÄÖÜẞ\s.,!?]*$/,
+            it: /^[A-Za-zàèéìíîïòóùú\s.,!?]*$/
+        };
+
+        function checkText() {
+            const text = $('#text-input').val();
+            const sourceLanguage = $('#source-language-select').val();
+            const pattern = languagePatterns[sourceLanguage];
+
+            if (pattern && !pattern.test(text)) {
+                $('#warning').text(`Zəhmət olmasa seçdiyiniz dildə yazın (${sourceLanguage}).`);
+            } else {
+                $('#warning').text('');
+            }
+        }
+
+        function translateText() {
+            const text = $('#text-input').val();
+            const sourceLanguage = $('#source-language-select').val();
+            const targetLanguage = $('#target-language-select').val();
+
+            const options = {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    q: text,
+                    source: sourceLanguage,
+                    target: targetLanguage,
+                    format: 'text'
+                })
+            };
+
+            $.ajax({
+                url: url,
+                method: 'POST',
+                headers: headers,
+                data: JSON.stringify({
+                    q: text,
+                    source: sourceLanguage,
+                    target: targetLanguage,
+                    format: 'text'
+                }),
+                success: function (response) {
+                    console.log(response);
+                    const translatedText = response.data.translations[0].translatedText;
+                    $('#translated-text').text(translatedText);
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error:', error);
+                    $('#translated-text').text('Tərcümə oluna bilmədi :/');
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>
